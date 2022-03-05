@@ -60,6 +60,11 @@ void RoomDialog::slot_removeUserShow(int id)
     }
 }
 
+void RoomDialog::slot_setAudioCheck(bool check)
+{
+    ui->cb_audio->setChecked(check);
+}
+
 void RoomDialog::slot_clearUserShow()
 {
     for(auto ite = m_mapIDToUserShow.begin();ite!=m_mapIDToUserShow.end();++ite)
@@ -92,4 +97,19 @@ void RoomDialog::closeEvent(QCloseEvent *event)
         return ;
     }
     event->ignore();
+}
+
+//开启或关闭音频
+void RoomDialog::on_cb_audio_clicked()
+{
+    if(ui->cb_audio->isChecked())
+    {
+//        ui->cb_audio->setChecked(false);
+        Q_EMIT SIG_audioStart();
+    }
+    else
+    {
+//        ui->cb_audio->setChecked(true);
+        Q_EMIT SIG_audioPause();
+    }
 }

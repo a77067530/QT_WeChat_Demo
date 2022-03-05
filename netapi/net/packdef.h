@@ -322,7 +322,15 @@ typedef struct STRU_LEAVEROOM_RQ
 
 */
 
-
+///音频数据帧
+/// 成员描述
+/// int type;
+/// int userId;
+/// int roomId;
+/// int min
+/// int sec;
+/// int msec;
+/// QByteArray audioFrame;
 
 
 

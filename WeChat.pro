@@ -36,6 +36,9 @@ INCLUDEPATH += ./netapi
 include(./MD5/md5.pri)
 INCLUDEPATH += ./MD5
 
+include(./AudioApi/audioapi.pri)
+INCLUDEPATH += ./Audioapi
+
 
 FORMS += \
     logindialog.ui \

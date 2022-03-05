@@ -14,6 +14,8 @@ class RoomDialog : public QDialog
     Q_OBJECT
 signals:
     void SIG_close();
+    void SIG_audioPause();
+    void SIG_audioStart();
 
 public:
     explicit RoomDialog(QWidget *parent = nullptr);
@@ -28,6 +30,8 @@ public slots:
 
     void slot_removeUserShow(int id);
 
+    void slot_setAudioCheck(bool check);
+
     void slot_clearUserShow();
 private slots:
     void on_pb_close_clicked();
@@ -35,6 +39,8 @@ private slots:
     void on_pb_quit_clicked();
 
     void closeEvent(QCloseEvent *event);
+    void on_cb_audio_clicked();
+
 private:
     Ui::RoomDialog *ui;
     QVBoxLayout * m_mainLayout;
