@@ -19,6 +19,7 @@ public:
 public slots:
     void slot_setInfo(int id,QString name);
     void paintEvent(QPaintEvent *event);
+    void slot_setImage(QImage& img);
 private:
     Ui::UserShow *ui;
 

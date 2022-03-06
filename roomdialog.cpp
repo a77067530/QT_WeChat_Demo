@@ -45,6 +45,16 @@ void RoomDialog::slot_addUserShow(UserShow *user)
     m_mapIDToUserShow[user->m_id] = user;
 }
 
+void RoomDialog::slot_refreshUser(int id, QImage &img)
+{
+    if(m_mapIDToUserShow.count(id)>0)
+    {
+        UserShow * user = m_mapIDToUserShow[id];
+        user->slot_setImage(img);
+    }
+}
+
+
 void RoomDialog::slot_removeUserShow(UserShow *user)
 {
     user->hide();
@@ -63,6 +73,11 @@ void RoomDialog::slot_removeUserShow(int id)
 void RoomDialog::slot_setAudioCheck(bool check)
 {
     ui->cb_audio->setChecked(check);
+}
+
+void RoomDialog::slot_setVideoCheck(bool check)
+{
+    ui->cb_video->setChecked(check);
 }
 
 void RoomDialog::slot_clearUserShow()
@@ -113,3 +128,17 @@ void RoomDialog::on_cb_audio_clicked()
         Q_EMIT SIG_audioPause();
     }
 }
+
+//开启或关闭 视频
+void RoomDialog::on_cb_video_clicked()
+{
+    if(ui->cb_video->isChecked())
+    {
+        Q_EMIT SIG_videoStart();
+    }
+    else
+    {
+        Q_EMIT SIG_videoPause();
+    }
+}
+

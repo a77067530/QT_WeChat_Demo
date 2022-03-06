@@ -39,6 +39,9 @@ INCLUDEPATH += ./MD5
 include(./AudioApi/audioapi.pri)
 INCLUDEPATH += ./Audioapi
 
+include(./VideoApi/videoapi.pri)
+INCLUDEPATH += ./Videoapi
+
 
 FORMS += \
     logindialog.ui \

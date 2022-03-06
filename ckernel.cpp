@@ -26,6 +26,9 @@ void Ckernel::setNetPackMap()
     NetPackMap(DEF_PACK_LEAVEROOM_RQ) = &Ckernel::slot_dealLeaveRoomRq;
 
     NetPackMap(DEF_PACK_AUDIO_FRAME) = &Ckernel::slot_dealAudioFrameRq;
+
+    NetPackMap(DEF_PACK_VIDEO_FRAME) = &Ckernel::slot_dealVideoFrameRq;
+
 }
 
 
@@ -58,6 +61,10 @@ Ckernel::Ckernel(QObject *parent) : QObject(parent),m_id(0),m_roomid(0)
 
     connect(m_pRoomdialog,SIGNAL(SIG_audioStart()),this,SLOT(slot_startAudio()));
 
+    connect(m_pRoomdialog,SIGNAL(SIG_videoPause()),this,SLOT(slot_pauseVideo()));
+
+    connect(m_pRoomdialog,SIGNAL(SIG_videoStart()),this,SLOT(slot_startVideo()));
+
     //添加网络
     m_pClient = new TcpClientMediator;
     m_pClient->OpenNet(_DEF_SERVERIP,_DEF_PORT);
@@ -67,6 +74,10 @@ Ckernel::Ckernel(QObject *parent) : QObject(parent),m_id(0),m_roomid(0)
     m_pAudioRead = new AudioRead;
 
     connect(m_pAudioRead,SIGNAL(SIG_audioFrame(QByteArray)),this,SLOT(slot_audioFrame(QByteArray)));
+
+    m_pVideoRead = new VideoRead;
+    connect(m_pVideoRead,SIGNAL(SIG_sendVideoFrame(QImage)),this,SLOT(slot_sendVideoFrame(QImage)));
+
 }
 
 
@@ -211,9 +222,11 @@ void Ckernel::slot_quitRoom()
     strcpy(rq.szUserName,name.c_str());
 
     m_pClient->SendData(0,(char*)&rq,sizeof(rq));
-    //关闭 音频 视频 todo
+    //关闭 音频 视频
     m_pAudioRead->pause();
+    m_pVideoRead->slot_closeVideo();
     m_pRoomdialog->slot_setAudioCheck(false);
+    m_pRoomdialog->slot_setVideoCheck(false);
 
     //回收所有人的audiowrite
     for(auto ite = m_mapIDToAudioWrite.begin();ite != m_mapIDToAudioWrite.end();)
@@ -319,7 +332,9 @@ void Ckernel::slot_dealCreateRoomRs(uint sock, char *buf, int nlen)
     //音频  初始化
     m_pRoomdialog->slot_setAudioCheck(false);
 
-    //视频 初始化 todo
+    //视频 初始化
+    m_pRoomdialog->slot_setVideoCheck(false);
+
 }
 //加入房间回复处理
 void Ckernel::slot_dealJoinRoomRs(uint sock, char *buf, int nlen)
@@ -342,7 +357,8 @@ void Ckernel::slot_dealJoinRoomRs(uint sock, char *buf, int nlen)
     //音频  初始化
     m_pRoomdialog->slot_setAudioCheck(false);
 
-    //视频 初始化 todo
+    //视频 初始化
+    m_pRoomdialog->slot_setVideoCheck(false);
 }
 //房间成员请求处理
 void Ckernel::slot_dealRoomMemberRq(uint sock, char *buf, int nlen)
@@ -430,6 +446,40 @@ void Ckernel::slot_dealAudioFrameRq(uint sock, char *buf, int nlen)
     }
 }
 
+//视频帧处理
+void Ckernel::slot_dealVideoFrameRq(uint sock, char *buf, int nlen)
+{
+    //拆包
+    ///视频数据帧
+    /// 成员描述
+    /// int type;
+    /// int userId;
+    /// int roomId;
+    /// int min;
+    /// int sec;
+    /// int msec;
+    /// QByteArray videoFrame;
+
+    char *tmp = buf;
+    tmp += sizeof(int);
+    int userId = *(int*)tmp;
+    tmp += sizeof(int);
+    int roomId = *(int*)tmp;
+    tmp += sizeof(int);
+    tmp += sizeof(int);
+    tmp += sizeof(int);
+    tmp += sizeof(int);
+
+    int datalen = nlen -6*sizeof(int);
+    QByteArray bt(tmp,datalen);
+    QImage img;
+    img.loadFromData(bt);
+
+    if(m_roomid == roomId)
+        m_pRoomdialog->slot_refreshUser(userId,img );
+
+}
+
 void Ckernel::slot_startAudio()
 {
     m_pAudioRead->start();
@@ -438,6 +488,23 @@ void Ckernel::slot_startAudio()
 void Ckernel::slot_pauseAudio()
 {
     m_pAudioRead->pause();
+}
+
+//开始视频
+void Ckernel::slot_startVideo()
+{
+    m_pVideoRead->slot_openVideo();
+}
+
+//关闭视频
+void Ckernel::slot_pauseVideo()
+{
+    m_pVideoRead->slot_closeVideo();
+}
+
+void Ckernel::slot_refreshVideo(int id,QImage & img)
+{
+    m_pRoomdialog->slot_refreshUser(id,img);
 }
 
 //发送音频帧
@@ -487,4 +554,54 @@ void Ckernel::slot_audioFrame(QByteArray ba)
     m_pClient->SendData(0,buf,nPackSize);
     delete [] buf;
 
+}
+#include<QBuffer>
+//发送视频帧
+void Ckernel::slot_sendVideoFrame(QImage img)
+{
+    //显示图片 todo
+    slot_refreshVideo(m_id,img);
+    //压缩
+    //压缩图片从RGB24格式压缩到JPEG格式，发送出去
+    QByteArray ba;
+    QBuffer qbuf(&ba);  //QBuffer 与 QByteArray字节数组联立联系
+    img.save(&qbuf,"JPEG",50); //将图片的数据写入ba
+    //使用ba对象，可以获取图片对应的缓冲区
+    //可以使用ba.data(),ba.size()将缓冲区发送出去
+
+    //写视频帧 发送
+
+    ///视频数据帧
+    /// 成员描述
+    /// int type;
+    /// int userId;
+    /// int roomId;
+    /// int min;
+    /// int sec;
+    /// int msec;
+    /// QByteArray videoFrame;
+    int nPackSize = 6*sizeof(int)+ba.size();
+    char *buf = new char[nPackSize];
+    char *tmp = buf;
+
+    *(int *)tmp =DEF_PACK_VIDEO_FRAME;
+    tmp+=sizeof(int);
+    *(int *)tmp =m_id;
+    tmp+=sizeof(int);
+    *(int *)tmp =m_roomid;
+    tmp+=sizeof(int);
+
+
+    //用于延迟过久舍弃一些帧的参考时间
+    QTime tm = QTime::currentTime();
+    *(int *)tmp =tm.minute();
+    tmp+=sizeof(int);
+    *(int *)tmp =tm.second();
+    tmp+=sizeof(int);
+    *(int *)tmp =tm.msec();
+    tmp+=sizeof(int);
+
+    memcpy(tmp,ba.data(),ba.size());
+
+    m_pClient->SendData(0,buf,nPackSize);
 }

@@ -9,6 +9,8 @@
 #include"roomdialog.h"
 #include"audioread.h"
 #include"audiowrite.h"
+
+#include"videoread.h"
 //协议映射表使用的类型
 class Ckernel;
 typedef void (Ckernel::*PFUN)(uint sock,char* buf,int nlen);
@@ -57,13 +59,22 @@ public slots:
     void slot_dealLeaveRoomRq(uint sock,char *buf,int nlen);
     //音频帧处理
     void slot_dealAudioFrameRq(uint sock,char *buf,int nlen);
-
+    //视频帧处理
+    void slot_dealVideoFrameRq(uint sock,char *buf,int nlen);
 
     void slot_startAudio();
     void slot_pauseAudio();
+
+    void slot_startVideo();
+    void slot_pauseVideo();
+
+    //刷新图片显示
+    void slot_refreshVideo(int id, QImage &img);
     //发送音频帧
     void slot_audioFrame(QByteArray ba);
 
+    //发送视频帧
+    void slot_sendVideoFrame(QImage img);
 private:
     WeChatDialog *m_pWeChatDlg;
     LoginDialog *m_pLoginDlg;
@@ -83,6 +94,10 @@ private:
     AudioRead * m_pAudioRead;
     std::map<int,AudioWrite*> m_mapIDToAudioWrite;
 
+    //////////////////////////////////////////
+    ///视频采集
+    ///
+   VideoRead * m_pVideoRead;
 };
 
 #endif // CKERNEL_H

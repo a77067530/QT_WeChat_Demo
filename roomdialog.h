@@ -17,14 +17,20 @@ signals:
     void SIG_audioPause();
     void SIG_audioStart();
 
+    void SIG_videoPause();
+    void SIG_videoStart();
+
 public:
     explicit RoomDialog(QWidget *parent = nullptr);
     ~RoomDialog();
 
+    void slot_setVideoCheck(bool check);
 public slots:
     void slot_setInfo(QString roomid);
 
     void slot_addUserShow(UserShow *user);
+
+    void slot_refreshUser(int id,QImage &img);
 
     void slot_removeUserShow(UserShow *user);
 
@@ -40,6 +46,8 @@ private slots:
 
     void closeEvent(QCloseEvent *event);
     void on_cb_audio_clicked();
+
+    void on_cb_video_clicked();
 
 private:
     Ui::RoomDialog *ui;
